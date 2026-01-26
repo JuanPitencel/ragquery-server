@@ -1,12 +1,11 @@
+import requests
 from qdrant_client import QdrantClient
-from sentence_transformers import SentenceTransformer
 from app.config import settings
 
 
 class QdrantService:
     def __init__(self):
         self.client = None
-        self.model = None
     
     def connect(self):
         if self.client is None:
@@ -16,22 +15,26 @@ class QdrantService:
             )
         return self.client
     
-    def load_model(self):
-        if self.model is None:
-            self.model = SentenceTransformer(settings.EMBEDDING_MODEL)
-        return self.model
+    def get_embedding(self, text: str) -> list[float]:
+        """Get embedding from Hugging Face Inference API."""
+        url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{settings.EMBEDDING_MODEL}"
+        headers = {"Authorization": f"Bearer {settings.HF_API_KEY}"}
+        
+        response = requests.post(url, headers=headers, json={"inputs": text})
+        response.raise_for_status()
+        
+        return response.json()
     
     def query(self, question: str, collection: str = None, top_k: int = None) -> list[dict]:
         client = self.connect()
-        model = self.load_model()
         
         collection_name = collection or settings.COLLECTION_NAME
         k = top_k or settings.TOP_K
         
-        # Generate embedding for the question
-        query_embedding = model.encode(question).tolist()
+        # Generate embedding via HF API
+        query_embedding = self.get_embedding(question)
         
-        # Search in Qdrant (using query_points for newer versions)
+        # Search in Qdrant
         results = client.query_points(
             collection_name=collection_name,
             query=query_embedding,

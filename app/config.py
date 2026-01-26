@@ -8,9 +8,10 @@ class Settings:
     QDRANT_API_KEY: str = os.getenv("QDRANT_API_KEY", "")
     COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", "documents")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    HF_API_KEY: str = os.getenv("HF_API_KEY", "")
     
-    # Embedding model (same as ingestion)
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    # Embedding model (Hugging Face)
+    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     
     # LLM settings
     LLM_MODEL: str = "llama-3.1-8b-instant"
