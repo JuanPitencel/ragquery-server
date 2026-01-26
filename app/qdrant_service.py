@@ -17,13 +17,21 @@ class QdrantService:
     
     def get_embedding(self, text: str) -> list[float]:
         """Get embedding from Hugging Face Inference API."""
-        url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{settings.EMBEDDING_MODEL}"
+        url = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
         headers = {"Authorization": f"Bearer {settings.HF_API_KEY}"}
         
         response = requests.post(url, headers=headers, json={"inputs": text})
         response.raise_for_status()
         
-        return response.json()
+        result = response.json()
+        
+        # Handle nested list response
+        if isinstance(result, list) and len(result) > 0:
+            if isinstance(result[0], list):
+                return result[0]
+            return result
+        
+        return result
     
     def query(self, question: str, collection: str = None, top_k: int = None) -> list[dict]:
         client = self.connect()
