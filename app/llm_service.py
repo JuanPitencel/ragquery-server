@@ -40,23 +40,27 @@ Text: {text}"""
             for chunk in context_chunks
         ])
         
-        prompt = f"""You are a helpful assistant that answers questions based on the provided document context.
-Answer in the same language as the question.
-If the answer is not in the context, say so.
-Be concise and direct.
+        prompt = f"""You are a helpful Toyota Corolla Cross Hybrid assistant. Answer questions based on the provided owner's manual content.
 
-CONTEXT:
+INSTRUCTIONS:
+- Provide detailed and complete answers using all relevant information from the context
+- Include specific steps, warnings, and important notes when available
+- If there are safety warnings, always include them
+- Answer in the same language as the question
+- If the answer is not in the context, say so
+
+CONTEXT FROM OWNER'S MANUAL:
 {context}
 
 QUESTION: {question}
 
-ANSWER:"""
+DETAILED ANSWER:"""
         
         response = client.chat.completions.create(
             model=settings.LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            max_tokens=1024
+            max_tokens=2048
         )
         
         return response.choices[0].message.content
