@@ -64,8 +64,11 @@ def query(request: QueryRequest):
     try:
         collection = request.collection or settings.COLLECTION_NAME
         
+        # Translate question to English for better search
+        english_question = llm_service.translate_to_english(request.question)
+        
         results = qdrant_service.query(
-            question=request.question,
+            question=english_question,
             collection=collection,
             top_k=request.top_k
         )
@@ -85,14 +88,17 @@ def chat(request: ChatRequest):
     try:
         collection = request.collection or settings.COLLECTION_NAME
         
-        # Get relevant chunks
+        # Translate question to English for better search
+        english_question = llm_service.translate_to_english(request.question)
+        
+        # Get relevant chunks using translated question
         chunks = qdrant_service.query(
-            question=request.question,
+            question=english_question,
             collection=collection,
             top_k=request.top_k
         )
         
-        # Generate answer with LLM
+        # Generate answer with original question (so it responds in same language)
         answer = llm_service.generate_response(request.question, chunks)
         
         return ChatResponse(
