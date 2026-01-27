@@ -16,8 +16,8 @@ class QdrantService:
         return self.client
     
     def get_embedding(self, text: str) -> list[float]:
-        """Get embedding from Hugging Face Inference API."""
-        url = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+        """Get embedding from Hugging Face Router API."""
+        url = "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction"
         headers = {"Authorization": f"Bearer {settings.HF_API_KEY}"}
         
         response = requests.post(url, headers=headers, json={"inputs": text})
