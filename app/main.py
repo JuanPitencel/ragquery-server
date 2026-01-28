@@ -28,6 +28,10 @@ frontend_url = os.getenv("FRONTEND_URL", "")
 if frontend_url:
     allowed_origins.append(frontend_url)
 
+# Fallback: if no origins configured, allow the known frontend
+if not allowed_origins:
+    allowed_origins = ["https://toyota-corolla-cross-bot.vercel.app"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -71,6 +75,15 @@ class ChatResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/debug")
+def debug():
+    return {
+        "environment": os.getenv("ENVIRONMENT"),
+        "frontend_url": os.getenv("FRONTEND_URL"),
+        "allowed_origins": allowed_origins
+    }
 
 
 @app.post("/query", response_model=QueryResponse)
