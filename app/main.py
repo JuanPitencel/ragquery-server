@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from app.qdrant_service import qdrant_service
 from app.llm_service import llm_service
 from app.config import settings
+import os
 
 
 app = FastAPI(
@@ -12,10 +13,24 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# CORS for frontend
+# CORS configuration
+allowed_origins = []
+
+# Only add localhost in development
+if os.getenv("ENVIRONMENT") != "production":
+    allowed_origins.extend([
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ])
+
+# Always add production frontend
+frontend_url = os.getenv("FRONTEND_URL", "")
+if frontend_url:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
