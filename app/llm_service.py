@@ -1,40 +1,42 @@
-from groq import Groq
+import httpx
 from app.config import settings
 
 
 class LLMService:
     def __init__(self):
-        self.client = None
+        self.groq_url = "https://api.groq.com/openai/v1/chat/completions"
+        self.headers = {
+            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
     
-    def connect(self):
-        if self.client is None:
-            self.client = Groq(api_key=settings.GROQ_API_KEY)
-        return self.client
-    
-    def translate_to_english(self, text: str) -> str:
+    async def translate_to_english(self, text: str) -> str:
         """Translate text to English if not already in English."""
-        client = self.connect()
-        
-        response = client.chat.completions.create(
-            model=settings.LLM_MODEL,
-            messages=[{
-                "role": "user", 
-                "content": f"""If the following text is in English, return it exactly as is.
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.groq_url,
+                headers=self.headers,
+                json={
+                    "model": settings.LLM_MODEL,
+                    "messages": [{
+                        "role": "user",
+                        "content": f"""If the following text is in English, return it exactly as is.
 If it's in another language, translate it to English.
 Return ONLY the text, nothing else.
 
 Text: {text}"""
-            }],
-            temperature=0.1,
-            max_tokens=256
-        )
-        
-        return response.choices[0].message.content.strip()
+                    }],
+                    "temperature": 0.1,
+                    "max_tokens": 256
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"].strip()
     
-    def generate_response(self, question: str, context_chunks: list[dict]) -> str:
-        client = self.connect()
-        
-        # Build context from chunks
+    async def generate_response(self, question: str, context_chunks: list[dict]) -> str:
+        """Generate a response using the LLM."""
         context = "\n\n---\n\n".join([
             f"[Page {chunk['page_number']}]\n{chunk['text']}" 
             for chunk in context_chunks
@@ -55,15 +57,22 @@ CONTEXT FROM OWNER'S MANUAL:
 QUESTION: {question}
 
 DETAILED ANSWER:"""
-        
-        response = client.chat.completions.create(
-            model=settings.LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=2048
-        )
-        
-        return response.choices[0].message.content
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.groq_url,
+                headers=self.headers,
+                json={
+                    "model": settings.LLM_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.3,
+                    "max_tokens": 2048
+                },
+                timeout=60.0
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
 
 
 llm_service = LLMService()

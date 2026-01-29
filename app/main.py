@@ -9,8 +9,8 @@ import os
 
 app = FastAPI(
     title="RAGQuery Server",
-    description="Lightweight query server for RAG applications",
-    version="0.1.0"
+    description="Lightweight async query server for RAG applications",
+    version="0.2.0"
 )
 
 # CORS configuration
@@ -73,12 +73,12 @@ class ChatResponse(BaseModel):
 
 
 @app.get("/health")
-def health():
+async def health():
     return {"status": "ok"}
 
 
 @app.get("/debug")
-def debug():
+async def debug():
     return {
         "environment": os.getenv("ENVIRONMENT"),
         "frontend_url": os.getenv("FRONTEND_URL"),
@@ -87,15 +87,15 @@ def debug():
 
 
 @app.post("/query", response_model=QueryResponse)
-def query(request: QueryRequest):
+async def query(request: QueryRequest):
     """Return raw chunks without LLM processing."""
     try:
         collection = request.collection or settings.COLLECTION_NAME
         
         # Translate question to English for better search
-        english_question = llm_service.translate_to_english(request.question)
+        english_question = await llm_service.translate_to_english(request.question)
         
-        results = qdrant_service.query(
+        results = await qdrant_service.query(
             question=english_question,
             collection=collection,
             top_k=request.top_k
@@ -111,23 +111,23 @@ def query(request: QueryRequest):
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest):
+async def chat(request: ChatRequest):
     """Return LLM-generated answer based on relevant chunks."""
     try:
         collection = request.collection or settings.COLLECTION_NAME
         
         # Translate question to English for better search
-        english_question = llm_service.translate_to_english(request.question)
+        english_question = await llm_service.translate_to_english(request.question)
         
         # Get relevant chunks using translated question
-        chunks = qdrant_service.query(
+        chunks = await qdrant_service.query(
             question=english_question,
             collection=collection,
             top_k=request.top_k
         )
         
         # Generate answer with original question (so it responds in same language)
-        answer = llm_service.generate_response(request.question, chunks)
+        answer = await llm_service.generate_response(request.question, chunks)
         
         return ChatResponse(
             question=request.question,
@@ -140,10 +140,9 @@ def chat(request: ChatRequest):
 
 
 @app.get("/collections/{collection_name}/info")
-def collection_info(collection_name: str):
+async def collection_info(collection_name: str):
     try:
-        client = qdrant_service.connect()
-        info = client.get_collection(collection_name)
+        info = await qdrant_service.get_collection_info(collection_name)
         return {
             "name": collection_name,
             "points_count": info.points_count,
